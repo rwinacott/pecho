@@ -34,11 +34,31 @@ $payload = array(
 file_put_contents("php://stdout", "Requested: ".trim($_SERVER['REQUEST_METHOD']).":".trim($_SERVER['REQUEST_URI'])." ");
 // Internal header not used at this time.
 header("X-SK-CODE: ".$_SERVER['REQUEST_TIME']);
-// Set the returned content type to JSON
-header("Content-type: application/json; charset=UTF-8", true);
+
 // create SQL based on HTTP method
 switch ($method) {
     case 'GET':
+        // Show a simple page with instructions on it.
+        header("Content-type: text/html; charset=UTF-8", true);
+        print("<html>\n<body>\n");
+        print("<p>This echo service will only respond to <b>POST</b> requests. Try running the following <i>curl</i> call</p>\n");
+        print("<pre>".
+'curl -i \
+	-H "Content-Type: application/json" \
+	-H "Accept: application/json" \
+	-H "X-HTTP-METHOD-Override: PUT" \
+	-X POST \
+	-d \'{
+		"username":"xyz",
+		"password":"xyz"
+		}\' \
+	localhost:8888/api/v1/echo'.
+        "\n</pre>\n");
+        print("<p>In a single line:</p>\n");
+        print('<pre>curl -i -H "Content-Type: application/json" -H "Accept: application/json" -H "X-HTTP-METHOD-Override: PUT" -X POST -d \'{"username":"xyz","password":"xyz"}\' localhost:8888/api/v1/echo</pre>'."\n");
+        print("</body>\n</html>\n");
+        break;
+
     case 'PUT':
     case 'DELETE':
         file_put_contents("php://stdout", "Responce Code:501\n");
@@ -46,6 +66,8 @@ switch ($method) {
         break;
 
     case 'POST':
+        // Set the returned content type to JSON
+        header("Content-type: application/json; charset=UTF-8", true);
         file_put_contents("php://stdout", "Responce Code:200\n");
         print(json_encode($payload, JSON_PRETTY_PRINT)."\n");
         http_response_code(200);
@@ -57,4 +79,3 @@ switch ($method) {
         break;
 }
 exit(0);
-print("This is a test\n");
