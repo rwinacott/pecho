@@ -2,6 +2,8 @@
 
 The pecho service is a simple web application running inside a docker container that will simulate a downstream system of the Matching Service.
 
+The web server used is the built in PHP server. This is only used for test cases, test runs, etc. The PHP build-in http server is not suitable for production systems. See the `docker/Dockerfile` for more information.
+
 There is no "compiling" of the code, but you do have to build the docker image. To do that, run the `make` command. This will copy the pecho.php file in to the docker folder and call the `docker build -t pecho-server ./docker` command.
 
 When you run the `make` command you will see the following output as the docker images is being built.
@@ -77,7 +79,7 @@ If you run the foreground docker container, it will leave old (dead) images in t
 $ docker images -q --filter "dangling=true" | xargs docker rmi
 ```
 
-If you see an error message about the port already bound, you need to pick a different local ort number instead of the 8888 port. Change the first port number to something else like:
+If you see an error message about the port already bound, you need to pick a different local port number instead of the 8888 port. Change the first port number to something else like:
 
 ```bash
 $ docker run -it -d -p 8888:8888 --name pecho-server pecho-server
