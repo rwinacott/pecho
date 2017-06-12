@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+cat <<EOD
+This build plan will only work correctly if the jenkins user account
+has full sudo capability to run the restricted docker commands on 
+a Linux system.
+If you find the plan is hung at a password prompt, check the sudoers file!
+EOD
+# Turn off exit on error until we see if we need to 
+# cleanup the docker images or not. Once done, we can
+# turn on exit on error again.
+set +e
+# See if we need to remove the image
+image_id=`sudo docker image ls pecho-server --format {{.ID}}`
+if [ "$image_id" != "" ]; then
+  sudo docker image ls pecho-server
+  sudo docker image rm $image_id
+  echo "Cleaned up old image"
+fi
+#
+image_id=`sudo docker image ls php --format {{.ID}}`
+if [ "$image_id" != "" ]; then
+  sudo docker image ls php
+  sudo docker image rm $image_id
+  echo "Removed the old php image base"
+fi
+# Turn back on exit on errors
+set -e
+# Run the build from the makefile. This must be a sudo command.
+sudo make
+#
+sudo docker images
+#
+
