@@ -4,5 +4,5 @@ all:
 	docker build -t pecho-server ./docker
 	
 run:
-    docker run -p 8888:8888 -it --rm --name pecho-server pecho-server
+	docker run -p 8888:8888 -it --rm --name pecho-server pecho-server
 

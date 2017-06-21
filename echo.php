@@ -1,8 +1,8 @@
 <?php
 /*
- * To Run: php -S localhost:8080 echo.php
+ * To Run: php -S localhost:8888 echo.php
  *
- * to call: curl -i \
+ * to call directly for testing: curl -i \
   -H "Content-type: application/json" \
   -H "Accept: application/json" \
   -X POST \
@@ -11,7 +11,15 @@
       "password":"xyz"
   }' \
   localhost:8080/api/v1/echo
- */
+  * 
+  * You can run this as a downstream system. It will echo back the 
+  * requesting data with a small change to the data structure values
+  * to test the ability to change the ID data and it will return a
+  * larger JSON structure to be passed back to the DAC application
+  * to be consumed. 
+  * 
+  * Call Path: DAC application -calls-> matching service -calls-> downstream
+  */
 
 /**
  * Send a time stamped message to standard out with the local servers IP address. 
@@ -22,7 +30,6 @@
  * @return void
  */
 function logMsg($msg) {
-    $localIP = getHostByName(getHostName());
     static $newLine = true;
 
     if ($newLine) {
@@ -41,30 +48,15 @@ function logMsg($msg) {
  */
 
 date_default_timezone_set('America/Toronto');
-
 // get the HTTP method, path and body of the request
 $method = $_SERVER['REQUEST_METHOD'];
 $request = explode('/', trim($_SERVER['REQUEST_URI'],'/'));
 $input = json_decode(file_get_contents('php://input'),true);
-$payload = array(
-    "request" => $input,
-    // Just some junk to return.
-    "result" => array(
-        "item1" => "Some Value",
-        "item2" => "Some other value",
-        "flag" => true,
-        "count" => 123,
-        "call_path" => $request,
-        "Server_path" => trim($_SERVER['PATH_INFO']),
-        "Server" => $_SERVER
-    )
-);
 // Show what is happing as debug output from this server.
 logMsg("Requested: ".trim($_SERVER['REQUEST_METHOD']).":".trim($_SERVER['REQUEST_URI'])." ");
 // Internal header not used at this time.
 header("X-SK-CODE: ".$_SERVER['REQUEST_TIME']);
-
-// create SQL based on HTTP method
+// create reply based on HTTP method
 switch ($method) {
     case 'GET':
         // Show a simple page with instructions on it.
@@ -88,6 +80,7 @@ switch ($method) {
         print('-H "X-HTTP-METHOD-Override: PUT" -X POST -d \'{"username":"xyz","password":"xyz"}\' ');
         print('localhost:8888/api/v1/echo</pre>'."\n");
         print("</body>\n</html>\n");
+        logMsg("Response Code:200 + HTML\n");
         break;
 
     case 'PUT':
@@ -97,9 +90,59 @@ switch ($method) {
         break;
 
     case 'POST':
+        // close this one message
+        logMsg("Response Code:200\n");        
+        /*
+        * The reply structure is as follows:
+        * 
+        * requestID:               <Symbol>		# requestID provided to matchIdentities() call
+        * requestTS:               <Epoch>			# Timestamp (epoch format) of call to matchIdentities()
+        * lineOfBusiness:          <String>
+        * applicationID:           <String>		# DI Matcher identifier for application being called
+        * leftDigitalIdentity:     <DigitalIdentity>
+        * rightDigitalIdentity:    <DigitalIdentity>
+        * matchScore:              <Real>
+        * matchStatus:             <Boolean>
+        * matchThreshold:          <Int>
+        * matchResult:             <String>
+        * appData: [
+        *      applicationID:          <String>					# REQUIRED
+        *      applicationPrivateID:   <String>					# OPTIONAL
+        *      applicationStatusCode:  <String>					# OPTIONAL
+        *      applicationPrivateData: <ArbitraryJSONStructure>	# OPTIONAL
+        * ]
+        * 
+        */  
+        $appData = array(
+            "applicationID" => $input['applicationID'],
+            "applicationPrivateID" => "PEcho",
+            "applicationStatusCode" => "200",
+            // just put together some junk to return as private data.
+            "applicationPrivateData" => array(
+                "item1" => "Some Value",
+                "item2" => "Some other value",
+                "flag" => true,
+                "count" => 123,
+                "call_path" => $request,
+                "Server_path" => trim($_SERVER['PATH_INFO']),
+                "Server" => $_SERVER
+            )
+        );
+        // Copy the input over to the reply output
+        $payload = $input;
+        // Make the small change to the input to become the new output
+        if (isset($payload['leftDigitalIdentity']['profile']['confidence'])) {
+            $payload['leftDigitalIdentity']['profile']['confidence'] = 99;
+        }
+        else {
+            logMsg("ERROR: The input is missing leftDigitalIdentity->profile->confidence\n");
+        }
+        // Add our metadata to the payload.
+        $payload['appData'] = $appData;
         // Set the returned content type to JSON
         header("Content-type: application/json; charset=UTF-8", true);
-        logMsg("Response Code:200\n");
+        logMsg("Input data:\n".print_r($input, true)."\n");
+        logMsg("Output data:\n".print_r($payload, true)."\n");
         print(json_encode($payload, JSON_PRETTY_PRINT)."\n");
         http_response_code(200);
         break;
