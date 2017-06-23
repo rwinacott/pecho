@@ -1,3 +1,4 @@
 .hg
 .hgignore
 docker/echo.php
+nbproject/
