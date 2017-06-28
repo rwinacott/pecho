@@ -114,7 +114,7 @@ switch ($method) {
         * 
         */  
         $appData = array(
-            "applicationID" => $input['applicationID'],
+            "applicationID" => "pecho-".$_SERVER['REQUEST_URI'], //$input['applicationID'],
             "applicationPrivateID" => "PEcho",
             "applicationStatusCode" => "200",
             // just put together some junk to return as private data.
