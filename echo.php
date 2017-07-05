@@ -90,35 +90,13 @@ switch ($method) {
         break;
 
     case 'POST':
-        // close this one message
-        logMsg("Response Code:200\n");        
-        /*
-        * The reply structure is as follows:
-        * 
-        * requestID:               <Symbol>		# requestID provided to matchIdentities() call
-        * requestTS:               <Epoch>			# Timestamp (epoch format) of call to matchIdentities()
-        * lineOfBusiness:          <String>
-        * applicationID:           <String>		# DI Matcher identifier for application being called
-        * leftDigitalIdentity:     <DigitalIdentity>
-        * rightDigitalIdentity:    <DigitalIdentity>
-        * matchScore:              <Real>
-        * matchStatus:             <Boolean>
-        * matchThreshold:          <Int>
-        * matchResult:             <String>
-        * appData: [
-        *      applicationID:          <String>					# REQUIRED
-        *      applicationPrivateID:   <String>					# OPTIONAL
-        *      applicationStatusCode:  <String>					# OPTIONAL
-        *      applicationPrivateData: <ArbitraryJSONStructure>	# OPTIONAL
-        * ]
-        * 
-        */  
-        $appData = array(
-            "applicationID" => "pecho-".$_SERVER['REQUEST_URI'], //$input['applicationID'],
-            "applicationPrivateID" => "PEcho",
-            "applicationStatusCode" => "200",
-            // just put together some junk to return as private data.
-            "applicationPrivateData" => array(
+        // Build the properly formated reply data structure.
+        $payload = array(
+            "identityData" => array(
+                "leftDigitalIdentity" => $input['identityData']['leftDigitalIdentity'],
+                "rightDigitalIdentity" => $input['identityData']['rightDigitalIdentity']
+            ),
+            "privateData" => array(
                 "item1" => "Some Value",
                 "item2" => "Some other value",
                 "flag" => true,
@@ -128,21 +106,20 @@ switch ($method) {
                 "Server" => $_SERVER
             )
         );
-        // Copy the input over to the reply output
-        $payload = $input;
+        logMsg("Response Code:200\n");        
         // Make the small change to the input to become the new output
-        if (isset($payload['leftDigitalIdentity']['profile']['confidence'])) {
-            $payload['leftDigitalIdentity']['profile']['confidence'] = 99;
+        if (isset($payload['identityData']['leftDigitalIdentity']['profile']['confidence'])) {
+            $payload['identityData']['leftDigitalIdentity']['profile']['confidence'] = 99;
         }
         else {
-            logMsg("ERROR: The input is missing leftDigitalIdentity->profile->confidence\n");
+            logMsg("ERROR: The input is missing identityData->leftDigitalIdentity->profile->confidence\n");
         }
         // Add our metadata to the payload.
-        $payload['appData'] = $appData;
         // Set the returned content type to JSON
         header("Content-type: application/json; charset=UTF-8", true);
         logMsg("Input data:\n".print_r($input, true)."\n");
         logMsg("Output data:\n".print_r($payload, true)."\n");
+        // Send the body and the response code.
         print(json_encode($payload, JSON_PRETTY_PRINT)."\n");
         http_response_code(200);
         break;
